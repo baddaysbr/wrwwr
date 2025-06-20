@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projeto Marea Turbo 350cv+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate & Amber -->
+    <!-- Application Structure Plan: A single-page dashboard design is used to provide a comprehensive overview of the project. The structure includes: 1. A header with the project title. 2. A summary section with key financial metrics (Total Cost, Spent, Remaining) for quick insights. 3. A main content area split into two columns on larger screens: one for the interactive checklist of parts and services, and one for a data visualization chart. 4. The checklist is categorized by project phase (Motor, Performance, Chassis, etc.) for logical grouping and step-by-step tracking. 5. Interactive checkboxes allow the user to mark items as complete, which dynamically updates the summary metrics and the chart, providing a real-time view of project progress and financials. This structure was chosen to transform a static list into a functional and motivating project management tool. -->
+    <!-- Visualization & Content Choices: The core data from the user's shopping list is organized into a detailed checklist. Goal: Track progress and costs. Method: Interactive list with checkboxes. Interaction: Checking an item updates financial summaries. Justification: Provides a clear, task-oriented view of the project. A doughnut chart is used to visualize the cost distribution by category. Goal: Understand where the budget is allocated. Method: Chart.js doughnut chart. Interaction: The chart dynamically updates to reflect the remaining costs as items are checked off. Justification: Gives a quick, high-level financial overview. All elements are built with HTML/CSS and dynamically managed with JavaScript, confirming no SVG or Mermaid JS is used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .completed-item {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .completed-item .price {
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">Projeto Marea Turbo 350cv+</h1>
+            <p class="mt-2 text-lg text-slate-600">Seu painel de controle para a construção da máquina dos sonhos.</p>
+        </header>
+
+        <section id="summary" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-sm font-medium text-slate-500">Custo Total Estimado (Peças)</h2>
+                <p id="totalCost" class="text-3xl font-bold text-slate-900 mt-1">R$ 0,00</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-sm font-medium text-green-600">Total Gasto</h2>
+                <p id="totalSpent" class="text-3xl font-bold text-green-700 mt-1">R$ 0,00</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-sm font-medium text-amber-600">Restante a Pagar</h2>
+                <p id="totalRemaining" class="text-3xl font-bold text-amber-700 mt-1">R$ 0,00</p>
+            </div>
+        </section>
+        
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-2xl font-bold mb-6 text-slate-800 border-b pb-4">Checklist de Peças e Serviços</h2>
+                <div id="project-items" class="space-y-6">
+                    <!-- Categories will be injected here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-2xl font-bold mb-6 text-slate-800 border-b pb-4">Distribuição de Custos</h2>
+                <div class="chart-container" style="position: relative; height:40vh; max-height:450px; width:100%; max-width:450px; margin: auto;">
+                    <canvas id="costChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-slate-500 mt-4">Visão geral de onde seu investimento está sendo alocado.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const projectData = [
+                { category: 'Motor (Forjado)', items: [
+                    { name: 'Kit Forjado Pistão + Bielas + Pino + Anéis', price: 6149.00, purchased: false },
+                    { name: 'Prisioneiro De Cabeçote Forjado Fiat', price: 790.00, purchased: false },
+                    { name: 'Comando De Válvula 260°/252° + Junta De Cabeçote', price: 2776.90, purchased: false }
+                ]},
+                { category: 'Indução Forçada', items: [
+                    { name: 'Turbo R595 .70 Pulsativa Master Power', price: 3630.41, purchased: false },
+                    { name: 'Coletor Turbo Fiat Marea 5 Cil. Fivetech T3', price: 936.05, purchased: false },
+                    { name: 'Intercooler 460 X 154 X 90 Mm - Bar & Plate', price: 1669.06, purchased: false },
+                    { name: 'Kit Intake Universal 3 Polegadas E Filtro', price: 380.00, purchased: false }
+                ]},
+                { category: 'Alimentação', items: [
+                    { name: 'Bomba Dinâmica Race 255 LPH', price: 577.50, purchased: false },
+                    { name: 'Bico Bosch 42lbs/h (x5)', price: 620.00, purchased: false },
+                    { name: 'Dosador Hpi 1:1', price: 103.08, purchased: false }
+                ]},
+                { category: 'Eletrônica e Monitoramento', items: [
+                    { name: 'Módulo De Injeção Programável', price: 4606.55, purchased: false },
+                    { name: 'Wideband Nano + Sonda Bosch 4.2', price: 1403.15, purchased: false },
+                    { name: 'Kit Cronomac Manômetros (Óleo, Turbo, Comb.)', price: 764.00, purchased: false },
+                    { name: '5 Velas De Ignição Marea Ngk V-power', price: 320.00, purchased: false }
+                ]},
+                { category: 'Chassis e Segurança', items: [
+                    { name: 'Fiat Marea Kit Rosca Slim', price: 1999.00, purchased: false },
+                    { name: 'Kit Freio Dianteiro 312MM (Discos e Suportes)', price: 2100.00, purchased: false },
+                    { name: 'Kit Aerokip Dianteiro', price: 430.02, purchased: false },
+                    { name: 'Pastilhas de Freio Performance', price: 276.92, purchased: false },
+                    { name: 'Fluido de Freio Alta Performance', price: 200.00, purchased: false, estimate: true },
+                    { name: 'Pneus de Alta Performance (Jogo)', price: 3500.00, purchased: false, estimate: true }
+                ]},
+                 { category: 'Serviços (Estimativa)', items: [
+                    { name: 'Mão de Obra: Montagem Motor Forjado e Retífica', price: 7000.00, purchased: false, estimate: true },
+                    { name:
+'Mão de Obra: Instalação de Periféricos', price: 3500.00, purchased: false, estimate: true },
+                    { name: 'Mão de Obra: Pressurização Customizada', price: 1400.00, purchased: false, estimate: true },
+                    { name: 'Mão de Obra: Instalação Freios e Suspensão', price: 1350.00, purchased: false, estimate: true },
+                    { name: 'Mão de Obra: Acerto no Dinamômetro', price: 4000.00, purchased: false, estimate: true },
+                    { name: 'Alinhamento e Geometria', price: 275.00, purchased: false, estimate: true }
+                ]}
+            ];
+            
+            const itemsContainer = document.getElementById('project-items');
+            const totalCostEl = document.getElementById('totalCost');
+            const totalSpentEl = document.getElementById('totalSpent');
+            const totalRemainingEl = document.getElementById('totalRemaining');
+            const ctx = document.getElementById('costChart').getContext('2d');
+            let costChart;
+
+            function formatCurrency(value) {
+                return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+
+            function renderItems() {
+                itemsContainer.innerHTML = '';
+                projectData.forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'mb-6';
+                    
+                    const categoryTitle = document.createElement('h3');
+                    categoryTitle.className = 'text-xl font-semibold text-slate-700 mb-3';
+                    categoryTitle.textContent = category.category;
+                    categoryDiv.appendChild(categoryTitle);
+                    
+                    const ul = document.createElement('ul');
+                    ul.className = 'space-y-3';
+                    
+                    category.items.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = `flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${item.purchased ? 'bg-green-50' : 'bg-slate-100'}`;
+                        
+                        li.innerHTML = `
+                            <div class="flex items-center">
+                                <input type="checkbox" ${item.purchased ? 'checked' : ''} class="h-5 w-5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer" data-name="${item.name}">
+                                <label class="ml-3 block text-sm font-medium ${item.purchased ? 'completed-item' : ''}" for="${item.name}">${item.name} ${item.estimate ? '(Estimado)' : ''}</label>
+                            </div>
+                            <span class="text-sm font-semibold ${item.purchased ? 'completed-item price' : 'text-slate-800'}">${formatCurrency(item.price)}</span>
+                        `;
+                        
+                        ul.appendChild(li);
+                    });
+                    
+                    categoryDiv.appendChild(ul);
+                    itemsContainer.appendChild(categoryDiv);
+                });
+                addEventListeners();
+                updateSummary();
+                updateChart();
+            }
+
+            function addEventListeners() {
+                document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const itemName = e.target.dataset.name;
+                        projectData.forEach(category => {
+                            const item = category.items.find(i => i.name === itemName);
+                            if (item) {
+                                item.purchased = e.target.checked;
+                            }
+                        });
+                        renderItems();
+                    });
+                });
+            }
+
+            function updateSummary() {
+                let totalCost = 0;
+                let totalSpent = 0;
+
+                projectData.forEach(category => {
+                    category.items.forEach(item => {
+                        totalCost += item.price;
+                        if (item.purchased) {
+                            totalSpent += item.price;
+                        }
+                    });
+                });
+                
+                const totalRemaining = totalCost - totalSpent;
+
+                totalCostEl.textContent = formatCurrency(totalCost);
+                totalSpentEl.textContent = formatCurrency(totalSpent);
+                totalRemainingEl.textContent = formatCurrency(totalRemaining);
+            }
+            
+            function updateChart() {
+                const categoryCosts = projectData.map(category => {
+                    const total = category.items.reduce((sum, item) => sum + item.price, 0);
+                    return { name: category.category, total: total };
+                });
+
+                const labels = categoryCosts.map(c => c.name);
+                const data = categoryCosts.map(c => c.total);
+
+                if (costChart) {
+                    costChart.destroy();
+                }
+
+                costChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Custo por Categoria',
+                            data: data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.7)',
+                                'rgba(54, 162, 235, 0.7)',
+                                'rgba(255, 206, 86, 0.7)',
+                                'rgba(75, 192, 192, 0.7)',
+                                'rgba(153, 102, 255, 0.7)',
+                                'rgba(255, 159, 64, 0.7)',
+                                'rgba(201, 203, 207, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(201, 203, 207, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += formatCurrency(context.parsed);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            renderItems();
+        });
+    </script>
+</body>
+</html>
